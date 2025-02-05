@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+  <head>
+    <title>Edit Task</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'main.css' %}">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Edit Task</h1>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="task-name">Title</label>
+          <input name="title" type="text" id="task-name" value="{{ task.title }}">
+          <label for="task-details">Description</label>
+          <input name="description" type="text" id="task-details" value="{{ task.description }}">
+        </div>
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select name="status" id="status">
+            {% for choice in STATUS_CHOICES %}
+                <option {% if task.status == choice.0 %} selected {% endif %} >{{ choice.0 }}</option>
+              {% endfor %}
+          </select>
+        </div>
+        <button class="btn">Save</button>
+        <a href="{% url 'home' %}" class="btn cancel" style="text-decoration: none;">Cancel</a>
+      </form>
+    </div>
+  </body>
+</html> 

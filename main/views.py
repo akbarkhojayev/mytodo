@@ -1,62 +1,28 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views import View
-from django.contrib.auth.models import User
-from .models import *
+from rest_framework import generics, permissions
+from main.serializers import *
 
-class HomeView(View):
-    def get(self, request):
-        if request.user.is_authenticated:
-            tasks = Task.objects.filter(owner=request.user).order_by('-created_at')
-            context = {
-                'tasks': tasks,
-                'STATUS_CHOICES': Task.STATUS_CHOICES,
-            }
-            return render(request,'index.html', context)
-        return redirect('login')
 
-    def post(self, request):
-        if request.user.is_authenticated:
-            deadline = request.POST.get('deadline')
-            if deadline == '':
-                deadline = None
-            Task.objects.create(
-                title=request.POST.get('title'),
-                description=request.POST.get('description'),
-                deadline=deadline,
-                status=request.POST.get('status'),
-                owner=request.user
-            )
-            return redirect('home')
-        return redirect('login')
+class TaskListView(generics.ListAPIView):
+    serializer_class = TaskSerializer
 
-class EditView(View):
-    def get(self, request , pk):
-        if request.user.is_authenticated:
-            task = get_object_or_404(Task, pk=pk)
-            task = get_object_or_404(Task, pk=pk)
-            context = {
-                'task': task,
-                'STATUS_CHOICES': Task.STATUS_CHOICES,
-            }
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Task.objects.none()
+        return Task.objects.filter(owner=self.request.user)
 
-            return render(request,'edit.html',context)
-        return redirect('login')
 
-    def post(self, request , pk):
-        if request.user.is_authenticated:
-            task = get_object_or_404(Task, pk=pk)
-            Task.objects.filter(pk=pk).update(
-                title = request.POST.get('title'),
-                description = request.POST.get('description'),
-                status = request.POST.get('status'),
-            )
-            return redirect('home')
-        return redirect('login')
+class TaskCreateView(generics.CreateAPIView):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-class DeleteView(View):
-    def get(self, request , pk):
-        if request.user.is_authenticated:
-            task = get_object_or_404(Task, pk=pk)
-            task.delete()
-            return redirect('home')
-        return redirect('login')
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Task.objects.filter(owner=self.request.user)
